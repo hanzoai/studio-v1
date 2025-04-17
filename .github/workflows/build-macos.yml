@@ -1,0 +1,49 @@
+name: Build macOS Electron App
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up pnpm
+      uses: pnpm/action-setup@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20' # Or choose a specific LTS version
+        cache: 'pnpm'
+
+    - name: Install dependencies
+      run: pnpm install
+
+    - name: Build Electron app
+      run: pnpm dist # This script handles both vite build and electron build
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: release/*.dmg # Path to the artifact to upload
+        tag_name: build-${{ github.run_id }} # Creates a unique tag for each run
+        name: Build ${{ github.run_id }}
+        body: "Automated build from workflow run ${{ github.run_id }}"
+        prerelease: true # Mark as pre-release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    # Remove the old upload step
+    # - name: Upload macOS Build Artifact
+    #   uses: actions/upload-artifact@v4
+    #   with:
+    #     name: groq-studio-macos-build
+    #     path: release/*.dmg # Adjust path if your build output is different
